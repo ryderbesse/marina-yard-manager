@@ -50,15 +50,17 @@ import type {
 } from "@/lib/types";
 import { deriveJobStatus } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { formatDate } from "@/lib/i18n/format";
 
 type StatusFilter = "all" | JobStatus;
 
-const statusFilters: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "in-progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-  { value: "on-hold", label: "On Hold" },
+const statusFilterValues: StatusFilter[] = [
+  "all",
+  "pending",
+  "in-progress",
+  "completed",
+  "on-hold",
 ];
 
 interface Props {
@@ -70,6 +72,7 @@ interface Props {
 }
 
 export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) {
+  const { language, t } = useLanguage();
   const worker = useAuth();
   const isBoss = worker?.app_role === "boss";
   const [filter, setFilter] = useState<StatusFilter>("all");
@@ -104,7 +107,7 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
     "on-hold": jobsWithStatus.filter((j) => j.derivedStatus === "on-hold").length,
   };
 
-  const dateLabel = new Date(today + "T12:00:00").toLocaleDateString("en-US", {
+  const dateLabel = formatDate(today + "T12:00:00", language, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -141,40 +144,40 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Daily Jobs</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t("dailyJobs.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{dateLabel}</p>
         </div>
         {isBoss && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" disabled title="AI-based workload optimization is in development">
+            <Button variant="outline" disabled title={t("dailyJobs.optimizeTooltip")}>
               <Sparkles className="mr-2 h-4 w-4" />
-              Optimize with AI
-              <span className="ml-1.5 text-xs text-muted-foreground">(In development)</span>
+              {t("dailyJobs.optimizeWithAi")}
+              <span className="ml-1.5 text-xs text-muted-foreground">{t("dailyJobs.inDevelopment")}</span>
             </Button>
             {plan?.status === "published" ? (
               <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
                 <Send className="h-3 w-3" />
-                Published
+                {t("dailyJobs.published")}
               </Badge>
             ) : (
               plan &&
               jobs.length > 0 && (
                 <Button variant="secondary" onClick={handlePublish} disabled={isPublishing}>
                   <Send className="mr-2 h-4 w-4" />
-                  {isPublishing ? "Publishing…" : "Publish Plan"}
+                  {isPublishing ? t("dailyJobs.publishing") : t("dailyJobs.publishPlan")}
                 </Button>
               )
             )}
             <Button onClick={openCreateDialog}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Job
+              {t("dailyJobs.addJob")}
             </Button>
           </div>
         )}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingJob ? "Edit Work Order" : "New Work Order"}</DialogTitle>
+              <DialogTitle>{editingJob ? t("dailyJobs.editWorkOrder") : t("dailyJobs.newWorkOrder")}</DialogTitle>
             </DialogHeader>
             <JobForm
               workers={workers}
@@ -188,28 +191,28 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <SummaryCard label="Total Jobs" value={counts.all} color="text-foreground" />
-        <SummaryCard label="In Progress" value={counts["in-progress"]} color="text-blue-600" />
-        <SummaryCard label="Pending" value={counts.pending} color="text-amber-600" />
-        <SummaryCard label="Completed" value={counts.completed} color="text-green-600" />
+        <SummaryCard label={t("dailyJobs.summary.totalJobs")} value={counts.all} color="text-foreground" />
+        <SummaryCard label={t("jobStatus.in-progress")} value={counts["in-progress"]} color="text-blue-600" />
+        <SummaryCard label={t("jobStatus.pending")} value={counts.pending} color="text-amber-600" />
+        <SummaryCard label={t("jobStatus.completed")} value={counts.completed} color="text-green-600" />
       </div>
 
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-1 flex-wrap">
-            {statusFilters.map((f) => (
+            {statusFilterValues.map((value) => (
               <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
+                key={value}
+                onClick={() => setFilter(value)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  filter === f.value
+                  filter === value
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                {f.label}
+                {value === "all" ? t("dailyJobs.filters.all") : t(`jobStatus.${value}`)}
                 <span className="ml-1.5 tabular-nums text-xs opacity-70">
-                  ({counts[f.value]})
+                  ({counts[value]})
                 </span>
               </button>
             ))}
@@ -218,22 +221,22 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-muted-foreground">
-              <p>{plan ? "No jobs match this filter." : "No plan for today yet."}</p>
+              <p>{plan ? t("dailyJobs.noJobsFilter") : t("dailyJobs.noPlanYet")}</p>
               {!plan && (
-                <p className="text-xs">Add a job to create today&apos;s plan automatically.</p>
+                <p className="text-xs">{t("dailyJobs.addJobHint")}</p>
               )}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Boat</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Assigned</TableHead>
-                  <TableHead>Est. Hours</TableHead>
-                  <TableHead>Status</TableHead>
-                  {isBoss && <TableHead className="text-right">Actions</TableHead>}
+                  <TableHead>{t("dailyJobs.table.boat")}</TableHead>
+                  <TableHead>{t("dailyJobs.table.location")}</TableHead>
+                  <TableHead>{t("dailyJobs.table.description")}</TableHead>
+                  <TableHead>{t("dailyJobs.table.assigned")}</TableHead>
+                  <TableHead>{t("dailyJobs.table.estHours")}</TableHead>
+                  <TableHead>{t("dailyJobs.table.status")}</TableHead>
+                  {isBoss && <TableHead className="text-right">{t("dailyJobs.table.actions")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -244,7 +247,7 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
                       <p className="font-medium">{job.boat_name}</p>
                       {job.captain_name && (
                         <p className="text-xs text-muted-foreground">
-                          Capt. {job.captain_name}
+                          {t("headPlan.captain", { name: job.captain_name })}
                         </p>
                       )}
                     </TableCell>
@@ -274,7 +277,7 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
                     <TableCell>
                       <div className="space-y-0.5">
                         {job.assignments.length === 0 ? (
-                          <span className="text-sm text-muted-foreground">Unassigned</span>
+                          <span className="text-sm text-muted-foreground">{t("headPlan.unassigned")}</span>
                         ) : (
                           job.assignments.map((a) => (
                             <div key={a.id} className="text-sm">
@@ -299,7 +302,7 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            title="Edit job"
+                            title={t("dailyJobs.editJob")}
                             onClick={() => openEditDialog(job)}
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -307,7 +310,7 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            title="Delete job"
+                            title={t("dailyJobs.deleteJob")}
                             onClick={() => setDeletingJob(job)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -324,9 +327,11 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                             <div>
                               <p className="font-medium text-amber-800">
-                                Change requested by{" "}
-                                {workers.find((w) => w.id === job.change_request_by)?.name ??
-                                  "Manager"}
+                                {t("dailyJobs.changeRequestedBy", {
+                                  name:
+                                    workers.find((w) => w.id === job.change_request_by)?.name ??
+                                    t("roles.head"),
+                                })}
                               </p>
                               <p className="text-amber-700">{job.change_request}</p>
                             </div>
@@ -339,7 +344,7 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
                               onClick={() => handleResolveChange(job.id)}
                               disabled={isResolving}
                             >
-                              {isResolving ? "Resolving…" : "Resolve"}
+                              {isResolving ? t("dailyJobs.resolving") : t("dailyJobs.resolve")}
                             </Button>
                           )}
                         </div>
@@ -360,24 +365,25 @@ export function DailyJobsContent({ plan, jobs, workers, groups, today }: Props) 
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this job?</AlertDialogTitle>
+            <AlertDialogTitle>{t("dailyJobs.deleteJobConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {deletingJob && (
                 <>
-                  This will permanently remove <strong>{deletingJob.boat_name}</strong> and
-                  all of its assignments from today&apos;s plan.
+                  {t("dailyJobs.deleteJobConfirmPre")}{" "}
+                  <strong>{deletingJob.boat_name}</strong>{" "}
+                  {t("dailyJobs.deleteJobConfirmPost")}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting…" : "Delete"}
+              {isDeleting ? t("common.deleting") : t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -414,6 +420,7 @@ function JobForm({
   job?: JobWithAssignments;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const isEdit = !!job;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -465,7 +472,7 @@ function JobForm({
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       {!isEdit && (
         <div className="space-y-1.5">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date">{t("workerProfile.date")}</Label>
           <Input
             id="date"
             type="date"
@@ -478,10 +485,10 @@ function JobForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="boatName">Boat Name</Label>
+          <Label htmlFor="boatName">{t("dailyJobs.boatName")}</Label>
           <Input
             id="boatName"
-            placeholder="e.g. Sea Breeze"
+            placeholder={t("dailyJobs.boatNamePlaceholder")}
             value={boatName}
             onChange={(e) => setBoatName(e.target.value)}
             required
@@ -489,12 +496,12 @@ function JobForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="captainName">
-            Captain{" "}
-            <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            {t("dailyJobs.captain")}{" "}
+            <span className="text-xs text-muted-foreground font-normal">{t("workerProfile.optional")}</span>
           </Label>
           <Input
             id="captainName"
-            placeholder="e.g. R. Besse"
+            placeholder={t("dailyJobs.captainPlaceholder")}
             value={captainName}
             onChange={(e) => setCaptainName(e.target.value)}
           />
@@ -503,23 +510,23 @@ function JobForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="location">Slip / Location</Label>
+          <Label htmlFor="location">{t("dailyJobs.location")}</Label>
           <Input
             id="location"
-            placeholder="e.g. Slip 14"
+            placeholder={t("dailyJobs.locationPlaceholder")}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="estimatedHours">Estimated Hours</Label>
+          <Label htmlFor="estimatedHours">{t("dailyJobs.estimatedHours")}</Label>
           <Input
             id="estimatedHours"
             type="number"
             min="0.5"
             step="0.5"
-            placeholder="e.g. 4"
+            placeholder={t("dailyJobs.estimatedHoursPlaceholder")}
             value={estimatedHours}
             onChange={(e) => setEstimatedHours(e.target.value)}
             required
@@ -528,10 +535,10 @@ function JobForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">{t("dailyJobs.description")}</Label>
         <Textarea
           id="description"
-          placeholder="Describe the work to be done..."
+          placeholder={t("dailyJobs.descriptionPlaceholder")}
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -541,14 +548,14 @@ function JobForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="skills">
-          Required Skills{" "}
+          {t("dailyJobs.requiredSkills")}{" "}
           <span className="text-xs text-muted-foreground font-normal">
-            (comma-separated)
+            {t("workerProfile.skillsHint")}
           </span>
         </Label>
         <Input
           id="skills"
-          placeholder="e.g. painting, welding, diving"
+          placeholder={t("dailyJobs.skillsPlaceholder")}
           value={skillsInput}
           onChange={(e) => setSkillsInput(e.target.value)}
         />
@@ -556,10 +563,10 @@ function JobForm({
 
       <div className="space-y-1.5">
         <Label>
-          Assign Workers
+          {t("dailyJobs.assignWorkers")}
           {assignedWorkerIds.length > 0 && (
             <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-              ({assignedWorkerIds.length} selected)
+              {t("workers.selectedCount", { count: assignedWorkerIds.length })}
             </span>
           )}
         </Label>
@@ -579,10 +586,16 @@ function JobForm({
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save Changes" : "Create Job"}
+          {isPending
+            ? isEdit
+              ? t("common.saving")
+              : t("dailyJobs.creating")
+            : isEdit
+              ? t("workerProfile.saveChanges")
+              : t("dailyJobs.createJob")}
         </Button>
       </div>
     </form>

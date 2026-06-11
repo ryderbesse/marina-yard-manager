@@ -53,8 +53,9 @@ import type {
   WorkerGroupWithMembers,
   MeetingWithNames,
 } from "@/lib/types";
-import { APP_ROLE_LABELS, deriveJobStatus } from "@/lib/types";
+import { deriveJobStatus } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 interface Props {
   workers: WorkerWithHours[];
@@ -64,6 +65,7 @@ interface Props {
 }
 
 export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) {
+  const { t } = useLanguage();
   const currentWorker = useAuth();
   const canManage = currentWorker?.app_role === "boss";
   const canSchedule =
@@ -93,21 +95,21 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Workers</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t("workers.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Team overview and weekly hours
+            {t("workers.subtitle")}
           </p>
         </div>
         {canManage && (
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Worker
+            {t("workers.addWorker")}
           </Button>
         )}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle>Add Worker</DialogTitle>
+              <DialogTitle>{t("workers.addWorker")}</DialogTitle>
             </DialogHeader>
             <AddWorkerForm onClose={() => setDialogOpen(false)} />
           </DialogContent>
@@ -115,15 +117,15 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total Workers" value={workers.length} color="text-foreground" />
-        <StatCard label="Hours This Week" value={totalHours} color="text-foreground" />
-        <StatCard label="Active Jobs Today" value={activeJobCount} color="text-blue-600" />
+        <StatCard label={t("workers.stats.totalWorkers")} value={workers.length} color="text-foreground" />
+        <StatCard label={t("workers.stats.hoursThisWeek")} value={totalHours} color="text-foreground" />
+        <StatCard label={t("workers.stats.activeJobsToday")} value={activeJobCount} color="text-blue-600" />
       </div>
 
       {canManage && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-            <CardTitle>Worker Groups</CardTitle>
+            <CardTitle>{t("workers.groupsTitle")}</CardTitle>
             <Button
               size="sm"
               onClick={() => {
@@ -132,14 +134,13 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
               }}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add Group
+              {t("workers.addGroup")}
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             {groups.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No groups yet. Create a group (e.g. &quot;Mechanics&quot;) to assign
-                everyone in it to a job at once.
+                {t("workers.noGroups")}
               </p>
             ) : (
               groups.map((group) => {
@@ -153,7 +154,7 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
                       <p className="font-medium">{group.name}</p>
                       <div className="flex flex-wrap gap-1">
                         {members.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">No members</span>
+                          <span className="text-xs text-muted-foreground">{t("workers.noMembers")}</span>
                         ) : (
                           members.map((m) => (
                             <span
@@ -170,7 +171,7 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        title="Edit group"
+                        title={t("workers.editGroup")}
                         onClick={() => {
                           setEditingGroup(group);
                           setGroupDialogOpen(true);
@@ -181,7 +182,7 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        title="Delete group"
+                        title={t("workers.deleteGroup")}
                         onClick={() => setDeletingGroup(group)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -198,7 +199,7 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
       <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingGroup ? "Edit Group" : "New Group"}</DialogTitle>
+            <DialogTitle>{editingGroup ? t("workers.editGroupTitle") : t("workers.newGroupTitle")}</DialogTitle>
           </DialogHeader>
           <WorkerGroupForm
             workers={workers}
@@ -214,25 +215,25 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this group?</AlertDialogTitle>
+            <AlertDialogTitle>{t("workers.deleteGroupConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {deletingGroup && (
                 <>
-                  This will permanently remove the group{" "}
-                  <strong>{deletingGroup.name}</strong>. Workers themselves are not
-                  affected.
+                  {t("workers.deleteGroupConfirmPre")}{" "}
+                  <strong>{deletingGroup.name}</strong>
+                  {t("workers.deleteGroupConfirmPost")}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingGroup}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingGroup}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={handleDeleteGroup}
               disabled={isDeletingGroup}
             >
-              {isDeletingGroup ? "Deleting…" : "Delete"}
+              {isDeletingGroup ? t("common.deleting") : t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -242,11 +243,11 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Title / Role</TableHead>
-              <TableHead>Hours This Week</TableHead>
-              <TableHead>Today&apos;s Jobs</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("workers.table.name")}</TableHead>
+              <TableHead>{t("workers.table.titleRole")}</TableHead>
+              <TableHead>{t("workers.table.hoursThisWeek")}</TableHead>
+              <TableHead>{t("workers.table.todaysJobs")}</TableHead>
+              <TableHead>{t("workers.table.status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -283,7 +284,7 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
                         variant="outline"
                         className="text-xs text-muted-foreground"
                       >
-                        {APP_ROLE_LABELS[worker.app_role]}
+                        {t(`roles.${worker.app_role}`)}
                       </Badge>
                     </div>
                   </TableCell>
@@ -322,15 +323,15 @@ export function WorkersContent({ workers, todayJobs, groups, meetings }: Props) 
                   <TableCell>
                     {isActive ? (
                       <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50">
-                        Active
+                        {t("workers.status.active")}
                       </Badge>
                     ) : workerTodayJobs.length > 0 ? (
                       <Badge variant="outline" className="text-muted-foreground">
-                        Assigned
+                        {t("workers.status.assigned")}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground">
-                        Available
+                        {t("workers.status.available")}
                       </Badge>
                     )}
                   </TableCell>
@@ -379,6 +380,7 @@ function WorkerGroupForm({
   group?: WorkerGroupWithMembers;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const isEdit = !!group;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -404,10 +406,10 @@ function WorkerGroupForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       <div className="space-y-1.5">
-        <Label htmlFor="groupName">Group Name</Label>
+        <Label htmlFor="groupName">{t("workers.groupName")}</Label>
         <Input
           id="groupName"
-          placeholder="e.g. Mechanics"
+          placeholder={t("workers.groupNamePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -416,10 +418,10 @@ function WorkerGroupForm({
 
       <div className="space-y-1.5">
         <Label>
-          Members
+          {t("workers.members")}
           {memberIds.length > 0 && (
             <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-              ({memberIds.length} selected)
+              {t("workers.selectedCount", { count: memberIds.length })}
             </span>
           )}
         </Label>
@@ -434,10 +436,10 @@ function WorkerGroupForm({
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={!name || isPending}>
-          {isPending ? "Saving…" : isEdit ? "Save Changes" : "Create Group"}
+          {isPending ? t("common.saving") : isEdit ? t("workerProfile.saveChanges") : t("workers.createGroup")}
         </Button>
       </div>
     </form>
@@ -445,6 +447,7 @@ function WorkerGroupForm({
 }
 
 function AddWorkerForm({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -478,10 +481,10 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       <div className="space-y-1.5">
-        <Label htmlFor="workerName">Full Name</Label>
+        <Label htmlFor="workerName">{t("workerProfile.fullName")}</Label>
         <Input
           id="workerName"
-          placeholder="e.g. Sam Rivera"
+          placeholder={t("workers.fullNamePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -489,10 +492,10 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="jobTitle">Job Title</Label>
+        <Label htmlFor="jobTitle">{t("settings.fields.jobTitle")}</Label>
         <Input
           id="jobTitle"
-          placeholder="e.g. Lead Mechanic"
+          placeholder={t("workers.jobTitlePlaceholder")}
           value={jobTitle}
           onChange={(e) => setJobTitle(e.target.value)}
           required
@@ -500,7 +503,7 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label>App Role</Label>
+        <Label>{t("settings.fields.role")}</Label>
         <Select
           value={appRole}
           onValueChange={(v) =>
@@ -508,17 +511,12 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select role" />
+            <SelectValue placeholder={t("workers.selectRole")} />
           </SelectTrigger>
           <SelectContent>
-            {(
-              Object.entries(APP_ROLE_LABELS) as [
-                DbWorker["app_role"],
-                string
-              ][]
-            ).map(([value, label]) => (
+            {(["boss", "head", "worker"] as DbWorker["app_role"][]).map((value) => (
               <SelectItem key={value} value={value}>
-                {label}
+                {t(`roles.${value}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -528,9 +526,9 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="email">
-            Email{" "}
+            {t("settings.fields.email")}{" "}
             <span className="text-xs text-muted-foreground font-normal">
-              (optional)
+              {t("workerProfile.optional")}
             </span>
           </Label>
           <Input
@@ -543,9 +541,9 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="phone">
-            Phone{" "}
+            {t("settings.fields.phone")}{" "}
             <span className="text-xs text-muted-foreground font-normal">
-              (optional)
+              {t("workerProfile.optional")}
             </span>
           </Label>
           <Input
@@ -566,10 +564,10 @@ function AddWorkerForm({ onClose }: { onClose: () => void }) {
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={!name || !appRole || isPending}>
-          {isPending ? "Adding…" : "Add Worker"}
+          {isPending ? t("workers.adding") : t("workers.addWorker")}
         </Button>
       </div>
     </form>

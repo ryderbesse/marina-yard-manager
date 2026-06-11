@@ -31,12 +31,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteMeeting, scheduleMeeting, updateWorker } from "@/lib/actions";
-import {
-  APP_ROLE_LABELS,
-  type DbWorker,
-  type MeetingWithNames,
-  type WorkerWithHours,
-} from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { formatDate, formatDateTime } from "@/lib/i18n/format";
+import type { DbWorker, MeetingWithNames, WorkerWithHours } from "@/lib/types";
 
 interface Props {
   worker: WorkerWithHours;
@@ -55,6 +52,7 @@ export function WorkerProfileDialog({
   currentWorkerId,
   onClose,
 }: Props) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<"view" | "edit" | "schedule">("view");
 
   const workerMeetings = meetings
@@ -70,9 +68,9 @@ export function WorkerProfileDialog({
         <DialogHeader>
           <DialogTitle>
             {mode === "edit"
-              ? `Edit ${worker.name}`
+              ? t("workerProfile.editTitle", { name: worker.name })
               : mode === "schedule"
-                ? `Schedule Meeting — ${worker.name}`
+                ? t("workerProfile.scheduleTitle", { name: worker.name })
                 : worker.name}
           </DialogTitle>
         </DialogHeader>
@@ -119,6 +117,7 @@ function ProfileView({
   onEdit: () => void;
   onSchedule: () => void;
 }) {
+  const { language, t } = useLanguage();
   const [isPending, startTransition] = useTransition();
 
   const handleDeleteMeeting = (meetingId: string) => {
@@ -130,7 +129,7 @@ function ProfileView({
   return (
     <div className="space-y-4 pt-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline">{APP_ROLE_LABELS[worker.app_role]}</Badge>
+        <Badge variant="outline">{t(`roles.${worker.app_role}`)}</Badge>
         {worker.job_title && (
           <Badge variant="outline" className="text-muted-foreground">
             <Briefcase className="mr-1 h-3 w-3" />
@@ -139,7 +138,7 @@ function ProfileView({
         )}
         {!worker.is_active && (
           <Badge variant="outline" className="border-destructive/30 text-destructive">
-            Inactive
+            {t("settings.fields.inactive")}
           </Badge>
         )}
       </div>
@@ -160,17 +159,18 @@ function ProfileView({
         {worker.hire_date && (
           <p className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            Hired{" "}
-            {new Date(worker.hire_date + "T12:00:00").toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
+            {t("settings.hiredOn", {
+              date: formatDate(worker.hire_date + "T12:00:00", language, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
             })}
           </p>
         )}
         <p className="flex items-center gap-2 text-muted-foreground">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          {worker.hours_this_week}h this week
+          {t("settings.hoursValue", { hours: worker.hours_this_week })}
         </p>
       </div>
 
@@ -189,7 +189,7 @@ function ProfileView({
 
       {worker.notes && (
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Notes</Label>
+          <Label className="text-xs text-muted-foreground">{t("settings.fields.notes")}</Label>
           <p className="rounded-md bg-muted px-3 py-2 text-sm">{worker.notes}</p>
         </div>
       )}
@@ -197,9 +197,9 @@ function ProfileView({
       <Separator />
 
       <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Upcoming Meetings</Label>
+        <Label className="text-xs text-muted-foreground">{t("workerProfile.upcomingMeetings")}</Label>
         {meetings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No meetings scheduled.</p>
+          <p className="text-sm text-muted-foreground">{t("workerProfile.noMeetings")}</p>
         ) : (
           <div className="space-y-2">
             {meetings.map((m) => {
@@ -215,14 +215,17 @@ function ProfileView({
                   <div className="min-w-0">
                     <p className="font-medium truncate">{m.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(m.starts_at).toLocaleString("en-US", {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}{" "}
-                      · {m.duration_minutes} min · with {otherParty.name}
+                      {t("workerProfile.meetingDetails", {
+                        date: formatDateTime(m.starts_at, language, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        }),
+                        duration: m.duration_minutes,
+                        name: otherParty.name,
+                      })}
                     </p>
                     {m.notes && (
                       <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>
@@ -232,7 +235,7 @@ function ProfileView({
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      title="Cancel meeting"
+                      title={t("workerProfile.cancelMeeting")}
                       disabled={isPending}
                       onClick={() => handleDeleteMeeting(m.id)}
                     >
@@ -250,13 +253,13 @@ function ProfileView({
         {canSchedule && (
           <Button variant="outline" onClick={onSchedule}>
             <CalendarPlus className="mr-2 h-4 w-4" />
-            Schedule Meeting
+            {t("workerProfile.scheduleMeetingButton")}
           </Button>
         )}
         {canEdit && (
           <Button onClick={onEdit}>
             <Pencil className="mr-2 h-4 w-4" />
-            Edit
+            {t("common.edit")}
           </Button>
         )}
       </div>
@@ -271,6 +274,7 @@ function EditWorkerForm({
   worker: WorkerWithHours;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -314,7 +318,7 @@ function EditWorkerForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       <div className="space-y-1.5">
-        <Label htmlFor="editName">Full Name</Label>
+        <Label htmlFor="editName">{t("workerProfile.fullName")}</Label>
         <Input
           id="editName"
           value={name}
@@ -324,7 +328,7 @@ function EditWorkerForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="editJobTitle">Job Title</Label>
+        <Label htmlFor="editJobTitle">{t("settings.fields.jobTitle")}</Label>
         <Input
           id="editJobTitle"
           value={jobTitle}
@@ -334,7 +338,7 @@ function EditWorkerForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label>App Role</Label>
+          <Label>{t("settings.fields.role")}</Label>
           <Select
             value={appRole}
             onValueChange={(v) => v && setAppRole(v as DbWorker["app_role"])}
@@ -343,18 +347,16 @@ function EditWorkerForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(
-                Object.entries(APP_ROLE_LABELS) as [DbWorker["app_role"], string][]
-              ).map(([value, label]) => (
+              {(["boss", "head", "worker"] as DbWorker["app_role"][]).map((value) => (
                 <SelectItem key={value} value={value}>
-                  {label}
+                  {t(`roles.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Status</Label>
+          <Label>{t("settings.fields.status")}</Label>
           <Select
             value={isActive ? "active" : "inactive"}
             onValueChange={(v) => v && setIsActive(v === "active")}
@@ -363,8 +365,8 @@ function EditWorkerForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="active">{t("settings.fields.active")}</SelectItem>
+              <SelectItem value="inactive">{t("settings.fields.inactive")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -372,7 +374,7 @@ function EditWorkerForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="editEmail">Email</Label>
+          <Label htmlFor="editEmail">{t("settings.fields.email")}</Label>
           <Input
             id="editEmail"
             type="email"
@@ -381,7 +383,7 @@ function EditWorkerForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="editPhone">Phone</Label>
+          <Label htmlFor="editPhone">{t("settings.fields.phone")}</Label>
           <Input
             id="editPhone"
             type="tel"
@@ -393,9 +395,9 @@ function EditWorkerForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="editSkills">
-          Skills{" "}
+          {t("settings.fields.skills")}{" "}
           <span className="text-xs text-muted-foreground font-normal">
-            (comma-separated)
+            {t("workerProfile.skillsHint")}
           </span>
         </Label>
         <Input
@@ -406,7 +408,7 @@ function EditWorkerForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="editNotes">Notes</Label>
+        <Label htmlFor="editNotes">{t("settings.fields.notes")}</Label>
         <Textarea
           id="editNotes"
           rows={3}
@@ -423,10 +425,10 @@ function EditWorkerForm({
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={!name || isPending}>
-          {isPending ? "Saving…" : "Save Changes"}
+          {isPending ? t("common.saving") : t("workerProfile.saveChanges")}
         </Button>
       </div>
     </form>
@@ -440,6 +442,7 @@ function ScheduleMeetingForm({
   attendeeWorkerId: string;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -455,7 +458,7 @@ function ScheduleMeetingForm({
 
     const startsAt = new Date(`${date}T${time}`);
     if (Number.isNaN(startsAt.getTime())) {
-      setError("Please choose a valid date and time.");
+      setError(t("workerProfile.invalidDateTime"));
       return;
     }
 
@@ -478,10 +481,10 @@ function ScheduleMeetingForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       <div className="space-y-1.5">
-        <Label htmlFor="meetingTitle">Title</Label>
+        <Label htmlFor="meetingTitle">{t("workerProfile.meetingTitle")}</Label>
         <Input
           id="meetingTitle"
-          placeholder="e.g. Weekly check-in"
+          placeholder={t("workerProfile.meetingTitlePlaceholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -490,7 +493,7 @@ function ScheduleMeetingForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="meetingDate">Date</Label>
+          <Label htmlFor="meetingDate">{t("workerProfile.date")}</Label>
           <Input
             id="meetingDate"
             type="date"
@@ -500,7 +503,7 @@ function ScheduleMeetingForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="meetingTime">Time</Label>
+          <Label htmlFor="meetingTime">{t("workerProfile.time")}</Label>
           <Input
             id="meetingTime"
             type="time"
@@ -512,26 +515,26 @@ function ScheduleMeetingForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Duration</Label>
+        <Label>{t("workerProfile.duration")}</Label>
         <Select value={duration} onValueChange={(v) => v && setDuration(v)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="15">15 minutes</SelectItem>
-            <SelectItem value="30">30 minutes</SelectItem>
-            <SelectItem value="45">45 minutes</SelectItem>
-            <SelectItem value="60">1 hour</SelectItem>
-            <SelectItem value="90">1.5 hours</SelectItem>
-            <SelectItem value="120">2 hours</SelectItem>
+            <SelectItem value="15">{t("workerProfile.durationOptions.15")}</SelectItem>
+            <SelectItem value="30">{t("workerProfile.durationOptions.30")}</SelectItem>
+            <SelectItem value="45">{t("workerProfile.durationOptions.45")}</SelectItem>
+            <SelectItem value="60">{t("workerProfile.durationOptions.60")}</SelectItem>
+            <SelectItem value="90">{t("workerProfile.durationOptions.90")}</SelectItem>
+            <SelectItem value="120">{t("workerProfile.durationOptions.120")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="meetingNotes">
-          Notes{" "}
-          <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+          {t("settings.fields.notes")}{" "}
+          <span className="text-xs text-muted-foreground font-normal">{t("workerProfile.optional")}</span>
         </Label>
         <Textarea
           id="meetingNotes"
@@ -549,10 +552,10 @@ function ScheduleMeetingForm({
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Back
+          {t("workerProfile.back")}
         </Button>
         <Button type="submit" disabled={!title || !date || !time || isPending}>
-          {isPending ? "Scheduling…" : "Schedule Meeting"}
+          {isPending ? t("workerProfile.scheduling") : t("workerProfile.scheduleMeetingButton")}
         </Button>
       </div>
     </form>

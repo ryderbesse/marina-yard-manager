@@ -27,20 +27,21 @@ import {
   updateAssignmentStatus,
   updateJobWorkers,
 } from "@/lib/actions";
-import {
-  APP_ROLE_LABELS,
-  type AssignmentWithWorker,
-  type DbAssignment,
-  type DbDailyPlan,
-  type DbWorker,
-  type JobWithAssignments,
-  type WorkerGroupWithMembers,
+import { useLanguage } from "@/lib/i18n/language-context";
+import { formatDate } from "@/lib/i18n/format";
+import type {
+  AssignmentWithWorker,
+  DbAssignment,
+  DbDailyPlan,
+  DbWorker,
+  JobWithAssignments,
+  WorkerGroupWithMembers,
 } from "@/lib/types";
 
-const assignmentStatusOptions: { value: DbAssignment["status"]; label: string }[] = [
-  { value: "assigned", label: "Assigned" },
-  { value: "active", label: "In Progress" },
-  { value: "completed", label: "Completed" },
+const assignmentStatusValues: DbAssignment["status"][] = [
+  "assigned",
+  "active",
+  "completed",
 ];
 
 interface Props {
@@ -52,7 +53,8 @@ interface Props {
 }
 
 export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Props) {
-  const dateLabel = new Date(today + "T12:00:00").toLocaleDateString("en-US", {
+  const { language, t } = useLanguage();
+  const dateLabel = formatDate(today + "T12:00:00", language, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -69,20 +71,20 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Today&apos;s Plan</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{t("headPlan.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{dateLabel}</p>
       </div>
 
       {!isPublished ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground">
-            <p>The boss hasn&apos;t published today&apos;s plan yet.</p>
+            <p>{t("headPlan.notPublished")}</p>
           </CardContent>
         </Card>
       ) : jobs.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground">
-            <p>No jobs scheduled for today.</p>
+            <p>{t("headPlan.noJobs")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -99,7 +101,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
                       <CardTitle>{job.boat_name}</CardTitle>
                       {job.captain_name && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          Capt. {job.captain_name}
+                          {t("headPlan.captain", { name: job.captain_name })}
                         </p>
                       )}
                     </div>
@@ -121,7 +123,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <Button variant="outline" size="sm" onClick={() => setEditingCrewJob(job)}>
                       <Users className="mr-2 h-3.5 w-3.5" />
-                      Edit Crew
+                      {t("headPlan.editCrew")}
                     </Button>
                     {!job.change_request && (
                       <Button
@@ -130,7 +132,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
                         onClick={() => setRequestingChangeJob(job)}
                       >
                         <MessageSquarePlus className="mr-2 h-3.5 w-3.5" />
-                        Request Change
+                        {t("headPlan.requestChange")}
                       </Button>
                     )}
                   </div>
@@ -140,7 +142,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                       <div>
                         <p className="font-medium text-amber-800">
-                          Change request pending review
+                          {t("headPlan.changeRequestPending")}
                         </p>
                         <p className="text-amber-700">{job.change_request}</p>
                       </div>
@@ -149,7 +151,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
                 </CardHeader>
                 <CardContent className="space-y-2 pt-0">
                   {sortedAssignments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Unassigned</p>
+                    <p className="text-sm text-muted-foreground">{t("headPlan.unassigned")}</p>
                   ) : (
                     sortedAssignments.map((assignment) => (
                       <AssignmentRow key={assignment.id} assignment={assignment} />
@@ -166,7 +168,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
         <Dialog open onOpenChange={(o) => !o && setEditingCrewJob(null)}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Crew — {editingCrewJob.boat_name}</DialogTitle>
+              <DialogTitle>{t("headPlan.editCrewTitle", { boat: editingCrewJob.boat_name })}</DialogTitle>
             </DialogHeader>
             <EditCrewForm
               job={editingCrewJob}
@@ -182,7 +184,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
         <Dialog open onOpenChange={(o) => !o && setRequestingChangeJob(null)}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Request Change — {requestingChangeJob.boat_name}</DialogTitle>
+              <DialogTitle>{t("headPlan.requestChangeTitle", { boat: requestingChangeJob.boat_name })}</DialogTitle>
             </DialogHeader>
             <RequestChangeForm
               jobId={requestingChangeJob.id}
@@ -196,6 +198,7 @@ export function HeadDailyPlanContent({ plan, jobs, workers, groups, today }: Pro
 }
 
 function AssignmentRow({ assignment }: { assignment: AssignmentWithWorker }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [notes, setNotes] = useState(assignment.notes ?? "");
 
@@ -219,13 +222,13 @@ function AssignmentRow({ assignment }: { assignment: AssignmentWithWorker }) {
       <div className="min-w-0">
         <p className="truncate font-medium">{assignment.worker.name}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {assignment.worker.job_title ?? APP_ROLE_LABELS[assignment.worker.app_role]}
+          {assignment.worker.job_title ?? t(`roles.${assignment.worker.app_role}`)}
         </p>
       </div>
 
       <div className="flex items-center gap-2 sm:max-w-md sm:flex-1">
         <Input
-          placeholder="Add a note…"
+          placeholder={t("headPlan.addNotePlaceholder")}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={handleNotesBlur}
@@ -237,9 +240,9 @@ function AssignmentRow({ assignment }: { assignment: AssignmentWithWorker }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {assignmentStatusOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+            {assignmentStatusValues.map((value) => (
+              <SelectItem key={value} value={value}>
+                {t(`assignmentStatus.${value}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -260,6 +263,7 @@ function EditCrewForm({
   groups: WorkerGroupWithMembers[];
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>(
@@ -294,10 +298,10 @@ function EditCrewForm({
       )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save Crew"}
+          {isPending ? t("common.saving") : t("headPlan.saveCrew")}
         </Button>
       </div>
     </form>
@@ -305,6 +309,7 @@ function EditCrewForm({
 }
 
 function RequestChangeForm({ jobId, onClose }: { jobId: string; onClose: () => void }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -325,11 +330,11 @@ function RequestChangeForm({ jobId, onClose }: { jobId: string; onClose: () => v
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       <div className="space-y-1.5">
-        <Label htmlFor="changeMessage">What would you like to change?</Label>
+        <Label htmlFor="changeMessage">{t("headPlan.changeQuestion")}</Label>
         <Textarea
           id="changeMessage"
           rows={3}
-          placeholder="e.g. This job needs another hour and an extra mechanic…"
+          placeholder={t("headPlan.changePlaceholder")}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           required
@@ -342,10 +347,10 @@ function RequestChangeForm({ jobId, onClose }: { jobId: string; onClose: () => v
       )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={!message.trim() || isPending}>
-          {isPending ? "Sending…" : "Send Request"}
+          {isPending ? t("headPlan.sending") : t("headPlan.sendRequest")}
         </Button>
       </div>
     </form>

@@ -2,11 +2,8 @@
 
 import { Check, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  APP_ROLE_LABELS,
-  type DbWorker,
-  type WorkerGroupWithMembers,
-} from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/language-context";
+import type { DbWorker, WorkerGroupWithMembers } from "@/lib/types";
 
 interface Props {
   workers: Pick<DbWorker, "id" | "name" | "job_title" | "app_role">[];
@@ -16,6 +13,8 @@ interface Props {
 }
 
 export function WorkerPicker({ workers, groups = [], selectedIds, onChange }: Props) {
+  const { t } = useLanguage();
+
   const toggleWorker = (id: string) => {
     onChange(
       selectedIds.includes(id)
@@ -92,7 +91,7 @@ export function WorkerPicker({ workers, groups = [], selectedIds, onChange }: Pr
               <div className="min-w-0">
                 <p className="font-medium leading-snug truncate">{w.name}</p>
                 <p className="text-xs opacity-70">
-                  {w.job_title ?? APP_ROLE_LABELS[w.app_role]}
+                  {w.job_title ?? t(`roles.${w.app_role}`)}
                 </p>
               </div>
             </button>
