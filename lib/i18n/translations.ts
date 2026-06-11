@@ -235,6 +235,14 @@ const en = {
     priority: "Priority {level}",
     note: "Note: {note}",
   },
+  schedule: {
+    previousWeek: "Previous week",
+    nextWeek: "Next week",
+    today: "Today",
+    noJobs: "No jobs",
+    meetingTime: "{time} · {duration} min",
+    withName: "with {name}",
+  },
   // EN_NAMESPACES_END
 } as const;
 
@@ -460,6 +468,21 @@ const es = {
     assignWorkers: "Asignar Trabajadores",
     creating: "Creando…",
     createJob: "Crear Trabajo",
+  },
+  myAssignments: {
+    title: "Mis Trabajos de Hoy",
+    subtitle: "{date} · {name}",
+    noJobs: "No tienes trabajos asignados hoy.",
+    priority: "Prioridad {level}",
+    note: "Nota: {note}",
+  },
+  schedule: {
+    previousWeek: "Semana anterior",
+    nextWeek: "Semana siguiente",
+    today: "Hoy",
+    noJobs: "Sin trabajos",
+    meetingTime: "{time} · {duration} min",
+    withName: "con {name}",
   },
   // ES_NAMESPACES_END
 } as const;

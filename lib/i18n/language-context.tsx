@@ -5,8 +5,8 @@ import {
   startTransition,
   useCallback,
   useContext,
-  useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { updateLanguage } from "@/lib/actions";
 import type { Language } from "@/lib/types";
@@ -21,6 +21,20 @@ type LanguageContextValue = {
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
+
+function subscribeToStoredLanguage(callback: () => void): () => void {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function getStoredLanguage(): Language {
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === "en" || stored === "es" ? stored : "en";
+}
+
+function getServerLanguage(): Language {
+  return "en";
+}
 
 function lookup(dict: unknown, path: string[]): unknown {
   let current = dict;
@@ -59,19 +73,18 @@ export function LanguageProvider({
   initialLanguage?: Language;
   persistToAccount?: boolean;
 }) {
-  const [language, setLanguageState] = useState<Language>(initialLanguage ?? "en");
+  const storedLanguage = useSyncExternalStore(
+    subscribeToStoredLanguage,
+    getStoredLanguage,
+    getServerLanguage
+  );
+  const [override, setOverride] = useState<Language | null>(null);
 
-  useEffect(() => {
-    if (initialLanguage) return;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "es") {
-      setLanguageState(stored);
-    }
-  }, [initialLanguage]);
+  const language = override ?? initialLanguage ?? storedLanguage;
 
   const setLanguage = useCallback(
     (next: Language) => {
-      setLanguageState(next);
+      setOverride(next);
       window.localStorage.setItem(STORAGE_KEY, next);
       if (persistToAccount) {
         startTransition(() => {

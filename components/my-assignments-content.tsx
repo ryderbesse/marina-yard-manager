@@ -11,12 +11,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateAssignmentStatus } from "@/lib/actions";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { formatDate, formatDateTime } from "@/lib/i18n/format";
 import type { AssignmentWithJob, DbAssignment, MeetingWithNames } from "@/lib/types";
 
-const assignmentStatusOptions: { value: DbAssignment["status"]; label: string }[] = [
-  { value: "assigned", label: "Assigned" },
-  { value: "active", label: "In Progress" },
-  { value: "completed", label: "Completed" },
+const assignmentStatusValues: DbAssignment["status"][] = [
+  "assigned",
+  "active",
+  "completed",
 ];
 
 interface Props {
@@ -27,7 +29,8 @@ interface Props {
 }
 
 export function MyAssignmentsContent({ assignments, meetings, workerName, today }: Props) {
-  const dateLabel = new Date(today + "T12:00:00").toLocaleDateString("en-US", {
+  const { language, t } = useLanguage();
+  const dateLabel = formatDate(today + "T12:00:00", language, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -37,16 +40,16 @@ export function MyAssignmentsContent({ assignments, meetings, workerName, today 
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">My Jobs Today</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{t("myAssignments.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {dateLabel} · {workerName}
+          {t("myAssignments.subtitle", { date: dateLabel, name: workerName })}
         </p>
       </div>
 
       {assignments.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground">
-            <p>No jobs assigned to you today.</p>
+            <p>{t("myAssignments.noJobs")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -59,24 +62,27 @@ export function MyAssignmentsContent({ assignments, meetings, workerName, today 
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Upcoming Meetings</CardTitle>
+          <CardTitle className="text-base">{t("workerProfile.upcomingMeetings")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {meetings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No meetings scheduled.</p>
+            <p className="text-sm text-muted-foreground">{t("workerProfile.noMeetings")}</p>
           ) : (
             meetings.map((m) => (
               <div key={m.id} className="rounded-md border border-border p-3 text-sm">
                 <p className="font-medium">{m.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(m.starts_at).toLocaleString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}{" "}
-                  · {m.duration_minutes} min · with {m.organizer.name}
+                  {t("workerProfile.meetingDetails", {
+                    date: formatDateTime(m.starts_at, language, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }),
+                    duration: m.duration_minutes,
+                    name: m.organizer.name,
+                  })}
                 </p>
                 {m.notes && (
                   <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>
@@ -91,6 +97,7 @@ export function MyAssignmentsContent({ assignments, meetings, workerName, today 
 }
 
 function AssignmentCard({ assignment: a }: { assignment: AssignmentWithJob }) {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (status: DbAssignment["status"] | null) => {
@@ -116,9 +123,9 @@ function AssignmentCard({ assignment: a }: { assignment: AssignmentWithJob }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {assignmentStatusOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+              {assignmentStatusValues.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {t(`assignmentStatus.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -137,14 +144,14 @@ function AssignmentCard({ assignment: a }: { assignment: AssignmentWithJob }) {
           {a.job.priority != null && (
             <span className="flex items-center gap-1">
               <Flag className="h-3.5 w-3.5" />
-              Priority {a.job.priority}
+              {t("myAssignments.priority", { level: a.job.priority })}
             </span>
           )}
         </div>
 
         {a.notes && (
           <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-            Note: {a.notes}
+            {t("myAssignments.note", { note: a.notes })}
           </p>
         )}
       </CardContent>

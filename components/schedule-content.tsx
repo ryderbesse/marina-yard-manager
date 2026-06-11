@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { JobStatusBadge } from "@/components/job-status-badge";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { formatDate, formatTime } from "@/lib/i18n/format";
 import type { MeetingWithNames, PlanWithJobs } from "@/lib/types";
 import { deriveJobStatus } from "@/lib/types";
 
@@ -33,19 +35,18 @@ function toDateStr(d: Date): string {
   return d.toISOString().split("T")[0];
 }
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today }: Props) {
+  const { language, t } = useLanguage();
   const [weekStart, setWeekStart] = useState(() =>
     getMondayOf(new Date(today + "T12:00:00"))
   );
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const weekLabel = `${weekStart.toLocaleDateString("en-US", {
+  const weekLabel = `${formatDate(weekStart, language, {
     month: "short",
     day: "numeric",
-  })} – ${addDays(weekStart, 6).toLocaleDateString("en-US", {
+  })} – ${formatDate(addDays(weekStart, 6), language, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -65,7 +66,7 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Schedule</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t("nav.schedule")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{weekLabel}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -73,7 +74,7 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
             variant="outline"
             size="icon"
             onClick={() => setWeekStart((d) => addDays(d, -7))}
-            aria-label="Previous week"
+            aria-label={t("schedule.previousWeek")}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -84,13 +85,13 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
               setWeekStart(getMondayOf(new Date(today + "T12:00:00")))
             }
           >
-            Today
+            {t("schedule.today")}
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={() => setWeekStart((d) => addDays(d, 7))}
-            aria-label="Next week"
+            aria-label={t("schedule.nextWeek")}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -98,7 +99,7 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
       </div>
 
       <div className="grid grid-cols-7 gap-3">
-        {weekDays.map((day, i) => {
+        {weekDays.map((day) => {
           const dateStr = toDateStr(day);
           const isToday = dateStr === today;
           const plan = plansByDate.get(dateStr);
@@ -114,7 +115,9 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                <p className="text-xs font-medium">{DAY_LABELS[i]}</p>
+                <p className="text-xs font-medium">
+                  {formatDate(day, language, { weekday: "short" })}
+                </p>
                 <p
                   className={`mt-0.5 text-lg font-bold leading-none ${
                     isToday ? "text-primary-foreground" : "text-foreground"
@@ -127,7 +130,7 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
               <div className="space-y-2">
                 {dayJobs.length === 0 && dayMeetings.length === 0 ? (
                   <div className="rounded-md border border-dashed border-border py-6 text-center">
-                    <p className="text-xs text-muted-foreground">No jobs</p>
+                    <p className="text-xs text-muted-foreground">{t("schedule.noJobs")}</p>
                   </div>
                 ) : (
                   <>
@@ -172,14 +175,16 @@ export function ScheduleContent({ initialPlans, meetings, currentWorkerId, today
                               {m.title}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(m.starts_at).toLocaleTimeString("en-US", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                              })}{" "}
-                              · {m.duration_minutes} min
+                              {t("schedule.meetingTime", {
+                                time: formatTime(m.starts_at, language, {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                }),
+                                duration: m.duration_minutes,
+                              })}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              with {otherParty.name}
+                              {t("schedule.withName", { name: otherParty.name })}
                             </p>
                           </CardContent>
                         </Card>
